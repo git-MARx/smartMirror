@@ -22,15 +22,26 @@ namespace SmartMirror
         /// </summary>
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
-            // check if activity is of type message
-            if (activity != null && activity.GetActivityType() == ActivityTypes.Message)
+
+            try
             {
-                await Conversation.SendAsync(activity, () => new MainDialog());
-            }
-            else
+                // check if activity is of type message
+                if (activity != null && activity.GetActivityType() == ActivityTypes.Message)
+                {
+                    await Conversation.SendAsync(activity, () => new MainDialog());
+                }
+                else
+                {
+                    HandleSystemMessage(activity);
+                }
+            }catch(Exception ex)
             {
-                HandleSystemMessage(activity);
+                Uri myUri = new Uri(activity.ServiceUrl);
+                var connector = new ConnectorClient(myUri);
+                var replyMessage = activity.CreateReply("I seem to have messed up, please try later.", "en");
+                await connector.Conversations.ReplyToActivityAsync(replyMessage);
             }
+
             return new HttpResponseMessage(System.Net.HttpStatusCode.Accepted);
         }
 
